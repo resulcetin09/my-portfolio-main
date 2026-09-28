@@ -1,0 +1,205 @@
+{
+  "user": "resulcetin09",
+  "generated": "2026-09-28T01:55:46.530Z",
+  "projects": [
+    {
+      "repo": "Harvest",
+      "title": "Harvest",
+      "tagline": {
+        "en": "Zero-knowledge harvest financing on Stellar.",
+        "tr": "Stellar üzerinde sıfır bilgi ispatlı hasat finansmanı."
+      },
+      "description": "Zero-knowledge harvest financing on Stellar. Farmers prove their yield is above a threshold without revealing production volume, fund campaigns in TRY via a Stellar anchor, and repay after harvest. Built for Rise In x Stellar Pro Hackathon 2026.",
+      "url": "https://harvest-six-alpha.vercel.app",
+      "github": "https://github.com/resulcetin09/Harvest",
+      "language": "JavaScript",
+      "year": "2026",
+      "updated": "2026-09-28T01:43:42Z",
+      "stars": 0,
+      "tags": [
+        "Stellar",
+        "Zero-knowledge",
+        "Three.js"
+      ],
+      "shot": "shots/harvest.jpg",
+      "featured": true,
+      "cinema": true
+    },
+    {
+      "repo": "Veil",
+      "title": "Veil",
+      "tagline": {
+        "en": "Prove you're on the guest list without revealing who you are.",
+        "tr": "Kimliğini açıklamadan davet listesinde olduğunu kanıtla."
+      },
+      "description": "Kullanıcı, kimliğini açıklamadan bir etkinliğin davetli listesinde olduğunu kanıtlar.",
+      "url": "https://veil-virid.vercel.app",
+      "github": "https://github.com/resulcetin09/Veil",
+      "language": "TypeScript",
+      "year": "2026",
+      "updated": "2026-09-24T18:33:48Z",
+      "stars": 0,
+      "tags": [
+        "Midnight",
+        "Zero-knowledge"
+      ],
+      "shot": "shots/veil.jpg",
+      "featured": false,
+      "cinema": false
+    },
+    {
+      "repo": "Cairn",
+      "title": "Cairn",
+      "tagline": {
+        "en": "Private all-or-nothing crowdfunding with ZK-verified goals.",
+        "tr": "Hedefleri ZK ile doğrulanan gizli, ya hep ya hiç kitle fonlaması."
+      },
+      "description": "Cairn — private crowdfunding with ZK-verified all-or-nothing goals, built on Midnight Network",
+      "url": "https://cairn-silk.vercel.app",
+      "github": "https://github.com/resulcetin09/Cairn",
+      "language": "TypeScript",
+      "year": "2026",
+      "updated": "2026-09-26T14:16:52Z",
+      "stars": 0,
+      "tags": [
+        "Midnight",
+        "Crowdfunding"
+      ],
+      "shot": "shots/cairn.jpg",
+      "featured": false,
+      "cinema": false
+    },
+    {
+      "repo": "NightVote",
+      "title": "NightVote",
+      "tagline": {
+        "en": "Anonymous voting, proven without being shown.",
+        "tr": "Gösterilmeden kanıtlanan anonim oylama."
+      },
+      "description": "",
+      "url": "https://nightvote.vercel.app",
+      "github": "https://github.com/resulcetin09/NightVote",
+      "language": "TypeScript",
+      "year": "2026",
+      "updated": "2026-09-24T01:14:41Z",
+      "stars": 0,
+      "tags": [
+        "Midnight",
+        "Governance"
+      ],
+      "shot": "shots/nightvote.jpg",
+      "featured": false,
+      "cinema": false
+    },
+    {
+      "repo": "nebula-markets",
+      "title": "Nebula Markets",
+      "tagline": {
+        "en": "Parimutuel prediction markets on Stellar.",
+        "tr": "Stellar üzerinde parimutuel tahmin piyasaları."
+      },
+      "description": "",
+      "url": "https://nebula-markets.vercel.app",
+      "github": "https://github.com/resulcetin09/nebula-markets",
+      "language": "TypeScript",
+      "year": "2026",
+      "updated": "2026-07-17T13:20:39Z",
+      "stars": 0,
+      "tags": [
+        "Stellar",
+        "Soroban"
+      ],
+      "shot": "shots/nebula-markets.jpg",
+      "featured": false,
+      "cinema": false
+    },
+    {
+      "repo": "rewindxlm",
+      "title": "RewindXLM",
+      "tagline": {
+        "en": "A time-travel debugger for failed Soroban transactions.",
+        "tr": "Başarısız Soroban işlemleri için zaman yolculuğu debugger'ı."
+      },
+      "description": "Soroban Time-Travel Debugger & Shareable Error Links — paste a failed Stellar tx, get a shareable visual breakdown of exactly why it reverted.",
+      "url": "https://rewindxlm.vercel.app",
+      "github": "https://github.com/resulcetin09/rewindxlm",
+      "language": "TypeScript",
+      "year": "2026",
+      "updated": "2026-07-26T04:44:24Z",
+      "stars": 0,
+      "tags": [
+        "Stellar",
+        "Developer tools"
+      ],
+      "shot": "shots/rewindxlm.jpg",
+      "featured": false,
+      "cinema": false
+    },
+    {
+      "repo": "stellarfund",
+      "title": "StellarFund",
+      "tagline": {
+        "en": "3D multi-wallet crowdfunding with live contract events.",
+        "tr": "Canlı kontrat olaylarıyla 3D, çoklu cüzdanlı kitle fonlaması."
+      },
+      "description": "3D multi-wallet crowdfunding dApp on Stellar (Soroban) - real XLM donations, real-time contract events, live tx status. Bootcamp Level 2.",
+      "url": "https://stellarfund-three.vercel.app",
+      "github": "https://github.com/resulcetin09/stellarfund",
+      "language": "TypeScript",
+      "year": "2026",
+      "updated": "2026-07-08T09:45:36Z",
+      "stars": 0,
+      "tags": [
+        "Stellar",
+        "Three.js"
+      ],
+      "shot": "shots/stellarfund.jpg",
+      "featured": false,
+      "cinema": false
+    },
+    {
+      "repo": "PromptGenerator",
+      "title": "Prompt Generator",
+      "tagline": {
+        "en": "Professional prompts for free AI tools, fully client-side.",
+        "tr": "Ücretsiz yapay zekâ araçları için profesyonel prompt üretici."
+      },
+      "description": "Ücretsiz AI araçları (ChatGPT, Gemini, Bing, Leonardo) için profesyonel prompt üreten, tamamen client-side çalışan web uygulaması.",
+      "url": "https://prompt-generator-dusky-nu.vercel.app",
+      "github": "https://github.com/resulcetin09/PromptGenerator",
+      "language": "HTML",
+      "year": "2026",
+      "updated": "2026-09-27T21:03:35Z",
+      "stars": 0,
+      "tags": [
+        "AI",
+        "Client-side"
+      ],
+      "shot": "shots/promptgenerator.jpg",
+      "featured": false,
+      "cinema": false
+    },
+    {
+      "repo": "devkit",
+      "title": "Devkit",
+      "tagline": {
+        "en": "Every tool that extends Claude, in one directory.",
+        "tr": "Claude'u genişleten tüm araçlar tek bir dizinde."
+      },
+      "description": "",
+      "url": "https://devkit-lime.vercel.app",
+      "github": "https://github.com/resulcetin09/devkit",
+      "language": "TypeScript",
+      "year": "2026",
+      "updated": "2026-09-27T04:09:25Z",
+      "stars": 0,
+      "tags": [
+        "Claude",
+        "Directory"
+      ],
+      "shot": "shots/devkit.jpg",
+      "featured": false,
+      "cinema": false
+    }
+  ]
+}

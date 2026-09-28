@@ -1,0 +1,125 @@
+{
+  "user": "resulcetin09",
+  "_comment": "Curated list. Order here = order on the site. Run `node scripts/sync-projects.mjs` after editing to refresh data/projects.json from GitHub. Set \"cinema\": true for projects built with the scroll-cinema skill; set \"featured\": true on the one to headline chapter 03.",
+  "projects": [
+    {
+      "repo": "Harvest",
+      "featured": true,
+      "cinema": true,
+      "shot": "shots/harvest.jpg",
+      "url": "https://harvest-six-alpha.vercel.app",
+      "tags": [
+        "Stellar",
+        "Zero-knowledge",
+        "Three.js"
+      ],
+      "tagline": {
+        "en": "Zero-knowledge harvest financing on Stellar.",
+        "tr": "Stellar üzerinde sıfır bilgi ispatlı hasat finansmanı."
+      }
+    },
+    {
+      "repo": "Veil",
+      "shot": "shots/veil.jpg",
+      "tags": [
+        "Midnight",
+        "Zero-knowledge"
+      ],
+      "tagline": {
+        "en": "Prove you're on the guest list without revealing who you are.",
+        "tr": "Kimliğini açıklamadan davet listesinde olduğunu kanıtla."
+      }
+    },
+    {
+      "repo": "Cairn",
+      "shot": "shots/cairn.jpg",
+      "url": "https://cairn-silk.vercel.app",
+      "tags": [
+        "Midnight",
+        "Crowdfunding"
+      ],
+      "tagline": {
+        "en": "Private all-or-nothing crowdfunding with ZK-verified goals.",
+        "tr": "Hedefleri ZK ile doğrulanan gizli, ya hep ya hiç kitle fonlaması."
+      }
+    },
+    {
+      "repo": "NightVote",
+      "shot": "shots/nightvote.jpg",
+      "tags": [
+        "Midnight",
+        "Governance"
+      ],
+      "tagline": {
+        "en": "Anonymous voting, proven without being shown.",
+        "tr": "Gösterilmeden kanıtlanan anonim oylama."
+      }
+    },
+    {
+      "repo": "nebula-markets",
+      "title": "Nebula Markets",
+      "shot": "shots/nebula-markets.jpg",
+      "tags": [
+        "Stellar",
+        "Soroban"
+      ],
+      "tagline": {
+        "en": "Parimutuel prediction markets on Stellar.",
+        "tr": "Stellar üzerinde parimutuel tahmin piyasaları."
+      }
+    },
+    {
+      "repo": "rewindxlm",
+      "title": "RewindXLM",
+      "shot": "shots/rewindxlm.jpg",
+      "url": "https://rewindxlm.vercel.app",
+      "tags": [
+        "Stellar",
+        "Developer tools"
+      ],
+      "tagline": {
+        "en": "A time-travel debugger for failed Soroban transactions.",
+        "tr": "Başarısız Soroban işlemleri için zaman yolculuğu debugger'ı."
+      }
+    },
+    {
+      "repo": "stellarfund",
+      "title": "StellarFund",
+      "shot": "shots/stellarfund.jpg",
+      "tags": [
+        "Stellar",
+        "Three.js"
+      ],
+      "tagline": {
+        "en": "3D multi-wallet crowdfunding with live contract events.",
+        "tr": "Canlı kontrat olaylarıyla 3D, çoklu cüzdanlı kitle fonlaması."
+      }
+    },
+    {
+      "repo": "PromptGenerator",
+      "title": "Prompt Generator",
+      "shot": "shots/promptgenerator.jpg",
+      "tags": [
+        "AI",
+        "Client-side"
+      ],
+      "tagline": {
+        "en": "Professional prompts for free AI tools, fully client-side.",
+        "tr": "Ücretsiz yapay zekâ araçları için profesyonel prompt üretici."
+      }
+    },
+    {
+      "repo": "devkit",
+      "title": "Devkit",
+      "shot": "shots/devkit.jpg",
+      "tags": [
+        "Claude",
+        "Directory"
+      ],
+      "tagline": {
+        "en": "Every tool that extends Claude, in one directory.",
+        "tr": "Claude'u genişleten tüm araçlar tek bir dizinde."
+      }
+    }
+  ]
+}
