@@ -1,0 +1,8 @@
+# Not part of the site — keep them out of the public deployment.
+# (Source files for rebuilding the model and project data, and docs.)
+docs/
+tools/
+scripts/
+data/projects.config.json
+README.md
+.gitignore

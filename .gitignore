@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+
+# dependencies / local tooling
+node_modules/
+
+# secrets (sync-projects.mjs reads GITHUB_TOKEN from the environment)
+.env
+.env.*
+
+# intermediate build output (tools/build-hero.sh)
+models/hero.raw.glb
+
+# Vercel
+.vercel/

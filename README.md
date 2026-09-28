@@ -48,8 +48,8 @@ switches language (also remembered in localStorage).
 f-stop ring, knurled focus grip, bayonet mount, coated glass) that
 mechanically transforms into a 35 mm film reel — one animation clip,
 `LensToReel`, scrubbed by scroll in chapter 04 and played backwards in 05.
-Storyboard, decisions and review video: `docs/morph-storyboard.md`,
-`docs/morph/`.
+Storyboard and decisions: `docs/morph-storyboard.md`. Review frames and a
+video are rendered on demand (see below), not kept in the repo.
 
 ```sh
 ./tools/build-hero.sh          # Blender → models/hero.glb (Meshopt, ~355 KB)

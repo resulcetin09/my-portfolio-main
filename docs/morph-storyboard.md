@@ -97,8 +97,9 @@ imza anların arka arkaya gelmemesini istiyor. Seçenekler:
 
 - Model: `tools/hero.py` → tek klip `LensToReel` (120 kare, 5 sn), 42.5k üçgen,
   Meshopt ile ~355 KB (`tools/build-hero.sh`).
-- İnceleme: `docs/morph/lens-to-reel.mp4`, `docs/morph/storyboard-3q.png`,
-  `docs/morph/storyboard-front-blades.png`, `docs/morph/reel-final.png`.
+- İnceleme: kareler ve video isteğe bağlı üretilir, repoda tutulmaz:
+  `tools/hero.py -- --out /tmp/x.glb --frames /tmp/frames [--front]` ve
+  `--video /tmp/lens-to-reel.mp4`.
 - Bıçak → kol eşleşmesi en kısa köşe yoluna göre otomatik seçilir
   (`best_spoke_match`); 9 katlı simetri her üretimde doğrulanır (assert).
 - Storyboard'dan farklar: bıçaklar kol olmadan önce objektifin önüne çıkar ve
