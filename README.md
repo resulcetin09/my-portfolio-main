@@ -6,7 +6,7 @@ the featured project is seen *through* the lens, and the work index is a reel
 of project cards turning around it.
 
 Built with the `/scroll-cinema` skill: vanilla HTML/CSS/JS, Three.js r186,
-GSAP 3.15 + ScrollTrigger, Lenis, and a hero modelled in Blender via Python.
+GSAP 3.15 + ScrollTrigger, Lenis (with a speed-limited playhead so transitions are never skipped), and a hero modelled and animated in Blender via Python.
 
 ## Run
 
@@ -22,10 +22,10 @@ switches language (also remembered in localStorage).
 | # | Scene | What happens |
 |---|---|---|
 | 01 | Opening | A closed lens in the dark; the camera rolls in |
-| 02 | The method | Portal out of the iris into paper; lens side-on, iris opens |
-| 03 | Featured | Camera dives into the lens, flash — the featured project inside it |
-| 04 | Selected work | Liquid night; project cards on a reel around the lens. Scroll turns the reel, hover a row for a bending RGB-split preview |
-| 05 | Contact | Paper again; the iris closes |
+| 02 | The method | The camera dives into the opening iris; the new world opens from inside the lens (clean iris) |
+| 03 | About | Camera dives into the lens, flash — about me beside the lens (from the CV: role, focus areas, numbers; no personal contact data) |
+| 04 | Selected work | No veil — the lens mechanically transforms into a film reel as the world turns to night; project cards turn around it. Hover a row for a bending RGB-split preview |
+| 05 | Contact | The reel folds back into the lens on paper; the iris closes |
 
 ## Adding or editing projects
 
@@ -42,17 +42,26 @@ switches language (also remembered in localStorage).
    The site only reads `data/projects.json`, so visitors never hit GitHub's
    API rate limit.
 
-## The lens model
+## The hero: lens ↔ film reel
 
-`tools/hero.py` builds the aperture (9 blades, barrel, gold accent ring,
-glass front element) and exports `models/hero.glb` (~15k triangles, Draco).
-Each blade's origin is its pivot; the page opens the iris by rotating blades
-around Z by up to `OPEN_DEG`.
+`tools/hero.py` builds a premium cine lens (9 blades, engraved name ring,
+f-stop ring, knurled focus grip, bayonet mount, coated glass) that
+mechanically transforms into a 35 mm film reel — one animation clip,
+`LensToReel`, scrubbed by scroll in chapter 04 and played backwards in 05.
+Storyboard, decisions and review video: `docs/morph-storyboard.md`,
+`docs/morph/`.
 
 ```sh
-/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup \
-  --python tools/hero.py -- --out models/hero.glb --preview /tmp/lens.png --open 0.5
+./tools/build-hero.sh          # Blender → models/hero.glb (Meshopt, ~355 KB)
+# review renders (not exported):
+/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python tools/hero.py -- \
+  --out /tmp/x.glb --frames /tmp/frames [--front] | --video /tmp/morph.mp4
 ```
+
+Every morphing part is generated for both states with the same vertex order
+(shape key "Reel"); the blade→spoke mapping is chosen automatically for the
+least vertex travel and 9-fold symmetry is asserted on every build. The page
+needs `MeshoptDecoder` on its GLTFLoader (Draco can't compress morph targets).
 
 ## Files
 

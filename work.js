@@ -97,11 +97,11 @@ export function titleCardTexture(project, { bg = '#0f1320', fg = '#f1ede6', acce
   g.fillStyle = grad; g.fillRect(0, 0, 1280, 615);
   g.strokeStyle = 'rgba(241,237,230,.12)';
   for (let x = 0; x < 1280; x += 64) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, 615); g.stroke(); }
-  g.fillStyle = accent; g.font = '500 22px "JetBrains Mono", monospace';
+  g.fillStyle = accent; g.font = '500 22px "IBM Plex Mono", monospace';
   g.fillText((project.tags || []).join('  ·  ').toUpperCase(), 80, 120);
-  g.fillStyle = fg; g.font = '400 180px "Instrument Serif", serif';
+  g.fillStyle = fg; g.font = '600 150px "Syne", sans-serif';
   g.fillText(project.title, 72, 360);
-  g.fillStyle = 'rgba(241,237,230,.6)'; g.font = '400 30px "Inter Tight", sans-serif';
+  g.fillStyle = 'rgba(241,237,230,.6)'; g.font = '400 30px "Manrope", sans-serif';
   g.fillText(project.tagline?.en ?? project.description ?? '', 80, 450);
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -175,6 +175,12 @@ export function createHoverPreview() {
       mesh.scale.set(w, w / uniforms.uAspect.value, 1);
       mesh.rotation.z = THREE.MathUtils.clamp(-uniforms.uVel.value.x * 0.0015, -0.12, 0.12);
       renderer.render(scene, camera);
+    },
+    // compile the preview shader and upload a texture before anyone hovers
+    warm(renderer, tex) {
+      if (!tex) return;
+      uniforms.uMap.value = tex;
+      renderer.compile(scene, camera);
     },
     resize() {
       camera.right = innerWidth; camera.bottom = -innerHeight;

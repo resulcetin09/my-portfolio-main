@@ -2,6 +2,7 @@ import { lang, LABELS } from './i18n.js'; // first: translates copy before words
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
@@ -13,6 +14,7 @@ import Lenis from 'lenis';
 import { createVeil, cover, reveal } from './transitions.js';
 import { splitWords } from './split-text.js';
 import { createReel, titleCardTexture, createHoverPreview } from './work.js';
+import { createPlayhead } from './playhead.js';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -30,7 +32,8 @@ try {
   document.documentElement.classList.add('no-webgl');
   throw new Error('WebGL unavailable — showing static fallback');
 }
-renderer.setPixelRatio(Math.min(devicePixelRatio, isSmall ? 1.5 : 2));
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5)); // 2× retina costs ~1.8× the pixels for little visible gain here
+if ('transmissionResolutionScale' in renderer) renderer.transmissionResolutionScale = 0.5; // glass refraction pass at half res
 renderer.setSize(innerWidth, innerHeight);
 renderer.toneMapping = THREE.NeutralToneMapping; // keeps project screenshots true to colour
 renderer.autoClear = false;
@@ -75,21 +78,23 @@ rig.scale.setScalar(S(1, 0.6));
 rig.rotation.set(0.12, -0.5, 0.05);
 // Scroll-driven numbers, applied to parts in frame().
 //   open: iris 0 closed → 1 fully open      spin: blade-ring rotation (rad)
-//   panel: featured image inside the lens    zoom: its Ken Burns scale
 //   turn: reel front card (float index)      reel: reel opacity
-const pose = { open: 0, spin: 0, panel: 0, zoom: 1.2, turn: 0, reel: 0, glass: 1 };
+const pose = { open: 0, spin: 0, turn: 0, reel: 0, glass: 1, morph: 0 };
+// morph: 0 = lens, 1 = film reel (scrubs the LensToReel clip; docs/morph-storyboard.md)
 const OPEN_ANGLE = THREE.MathUtils.degToRad(55); // matches OPEN_DEG in tools/hero.py
+const FILM = new THREE.Color('#2b1a0e'); // wound film stock on the reel
 let parts = null;
 
 async function loadHero() {
   const draco = new DRACOLoader().setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
-  const loader = new GLTFLoader().setDRACOLoader(draco);
+  // Meshopt carries the lens↔reel morph targets (Draco can't compress them)
+  const loader = new GLTFLoader().setDRACOLoader(draco).setMeshoptDecoder(MeshoptDecoder);
   try {
     const gltf = await loader.loadAsync('./models/hero.glb', (e) => progress.set('hero', e.total ? e.loaded / e.total : 0.5));
-    return gltf.scene;
+    return { scene: gltf.scene, clip: THREE.AnimationClip.findByName(gltf.animations, 'LensToReel') };
   } catch (err) {
     console.warn('[scroll-cinema] models/hero.glb not found — using procedural hero', err);
-    return proceduralHero();
+    return { scene: proceduralHero(), clip: null };
   }
 }
 
@@ -113,32 +118,6 @@ function proceduralHero() {
   return g;
 }
 
-// Featured project, seen *through* the lens: a circular panel behind the blades.
-const panelFrag = /* glsl */ `
-  uniform sampler2D uMap; uniform float uOpacity; uniform float uZoom; uniform vec2 uCenter;
-  varying vec2 vUv;
-  void main() {
-    vec2 p = vUv - 0.5;
-    float mask = 1.0 - smoothstep(0.47, 0.48, length(p));
-    vec2 tuv = vec2(p.x / 2.08, p.y) * uZoom + uCenter;
-    vec3 c = texture2D(uMap, tuv).rgb;
-    c *= 1.0 - smoothstep(0.25, 0.5, length(p)) * 0.55; // lens vignette
-    if (mask < 0.5) discard;
-    gl_FragColor = vec4(c * uOpacity, 1.0);
-    #include <colorspace_fragment>
-  }
-`;
-const panel = new THREE.Mesh(
-  new THREE.PlaneGeometry(2.3, 2.3),
-  new THREE.ShaderMaterial({
-    uniforms: { uMap: { value: null }, uOpacity: { value: 0 }, uZoom: { value: 1.2 }, uCenter: { value: new THREE.Vector2(0.62, 0.5) } },
-    vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-    fragmentShader: panelFrag,
-  }),
-);
-panel.position.z = -0.3; // inside the barrel, behind the blades
-panel.visible = false;
-rig.add(panel);
 
 // ------------------------------------------------------------------ dust
 const dust = (() => {
@@ -180,19 +159,6 @@ async function loadProjects() {
 
 const tagline = (p) => p.tagline?.[lang] ?? p.tagline?.en ?? p.description;
 
-function fillFeatured() {
-  const i = Math.max(0, projects.findIndex((p) => p.featured));
-  const p = projects[i];
-  const el = document.querySelector('[data-scene="featured"]');
-  el.querySelector('[data-f="title"]').textContent = p.title;
-  el.querySelector('[data-f="tagline"]').textContent = tagline(p);
-  el.querySelector('[data-f="tags"]').innerHTML = p.tags.map((t) => `<li>${t}</li>`).join('');
-  const live = el.querySelector('[data-f="url"]');
-  if (p.url) live.href = p.url; else live.remove();
-  el.querySelector('[data-f="github"]').href = p.github;
-  panel.material.uniforms.uMap.value = textures[i];
-}
-
 function fillWork() {
   document.querySelector('[data-count]').textContent = `(${String(projects.length).padStart(2, '0')})`;
   const list = document.querySelector('[data-work-list]');
@@ -233,98 +199,130 @@ const WORLDS = {
   night: { bg: '#0a0e1a', fg: '#f1ede6', muted: 'rgb(241 237 230 / .58)', line: 'rgb(241 237 230 / .18)' },
 };
 const labels = LABELS[lang];
-const SCENES = [
-  { id: 'intro', length: 2 },
-  { id: 'manifesto', length: 2.2 },
-  { id: 'featured', length: 2.6 },
-  { id: 'work', length: 3.6 },
-  { id: 'contact', length: 2 },
-].map((s, i) => ({ ...s, label: labels[i] }));
 const TR = 0.4;
+const DIVE = 0.45; // opening → method: the camera's dive into the lens before the iris opens
+const MORPH = 1.25; // timeline units the lens ↔ reel transformation takes
+// clear: when the scene is fully on screen (copy lands after it)
+// zone:  how long its entrance runs — the playhead slows down inside it
+const SCENES = [
+  { id: 'intro', length: 2, out: DIVE + 0.3 }, // copy leaves before the dive starts
+  { id: 'manifesto', length: 2.2, clear: TR * 2, zone: TR * 2, lead: DIVE },
+  { id: 'about', length: 2.8, clear: TR * 2, zone: TR * 2 },
+  { id: 'work', length: 4.6, clear: MORPH * 1.15 + 0.1, zone: MORPH * 1.15 },
+  { id: 'contact', length: 2.8, clear: MORPH * 0.8 + 0.5, zone: MORPH + 0.1 },
+].map((s, i) => ({ ...s, label: labels[i] }));
 const io = { ease: 'power2.inOut' };
 const snap = (tl, target, vars, t) => tl.to(target, { ...vars, duration: 0 }, t);
 
-function world(tl, w, t, bloomStrength) {
+// d = 0: instant swap (behind a veil); d > 0: blend while something moves (the morph)
+function world(tl, w, t, bloomStrength, d = 0) {
   const c = new THREE.Color(w.bg);
-  tl.to(scene.background, { r: c.r, g: c.g, b: c.b, duration: 0 }, t)
-    .to(scene.fog.color, { r: c.r, g: c.g, b: c.b, duration: 0 }, t)
-    .to(document.documentElement, { '--bg': w.bg, '--fg': w.fg, '--muted': w.muted, '--line': w.line, duration: 0 }, t)
-    .to(bloom, { strength: bloomStrength, duration: 0 }, t);
+  tl.to(scene.background, { r: c.r, g: c.g, b: c.b, duration: d }, t)
+    .to(scene.fog.color, { r: c.r, g: c.g, b: c.b, duration: d }, t)
+    // CSS colours always snap (at the middle of a blend): tweening root CSS
+    // variables restyles the whole document every frame
+    .to(document.documentElement, { '--bg': w.bg, '--fg': w.fg, '--muted': w.muted, '--line': w.line, duration: 0 }, t + d / 2)
+    .to(bloom, { strength: bloomStrength, duration: d }, t);
 }
 
 const BUILD = {
   // 1 — a closed lens alone in the dark; the camera rolls in.
   intro(tl, t, s) {
-    tl.to(camRig.position, { z: S(6.4, 8.6), duration: s.length, ...io }, t)
-      .to(rig.rotation, { y: -0.12, x: 0.02, duration: s.length, ...io }, t)
-      .to(pose, { open: 0.14, spin: 0.5, duration: s.length, ...io }, t);
+    const d = s.length - DIVE;   // the last DIVE units belong to the dive into the lens
+    tl.to(camRig.position, { z: S(6.4, 8.6), duration: d, ...io }, t)
+      .to(rig.rotation, { y: 0, x: 0, duration: d, ...io }, t)   // face the camera for the dive
+      .to(pose, { open: 0.14, spin: 0.5, duration: d, ...io }, t);
   },
 
   // 2 — the iris opens into paper; the lens turns side-on to show its depth.
   manifesto(tl, t, s) {
-    cover(tl, veil, { mode: 'portal', color: WORLDS.paper.bg, duration: TR }, t);
+    // the camera flies into the opening iris; the new world opens from inside the lens
+    tl.to(pose, { glass: 0, duration: 0 }, t - DIVE)
+      .to(pose, { open: 1, duration: DIVE, ease: 'power2.out' }, t - DIVE)
+      .to(camRig.position, { x: S(1.7, 0), y: S(0, 0.95), z: 0.6, duration: DIVE + TR * 0.6, ease: 'power2.inOut' }, t - DIVE)
+      .to(camera, { fov: 55, duration: DIVE + TR * 0.6, ease: 'power2.inOut', onUpdate: () => camera.updateProjectionMatrix() }, t - DIVE);
+    cover(tl, veil, { mode: 'iris', color: WORLDS.paper.bg, duration: TR }, t);
+    snap(tl, camera, { fov: 35, onUpdate: () => camera.updateProjectionMatrix() }, t + TR);
     world(tl, WORLDS.paper, t + TR, 0.05);
     snap(tl, camRig.position, { x: 0, y: 0, z: 6.2 }, t + TR);
     snap(tl, rig.position, { x: S(2.05, 0.2), y: S(-0.05, 1) }, t + TR);
     snap(tl, rig.rotation, { x: 0.15, y: 1.15, z: 0.1 }, t + TR);
     snap(tl, rig.scale, { x: S(1.0, 0.62), y: S(1.0, 0.62), z: S(1.0, 0.62) }, t + TR);
-    snap(tl, pose, { open: 0.3 }, t + TR);
+    snap(tl, pose, { open: 0.3, glass: 1 }, t + TR);
     snap(tl, dust.material, { opacity: 0 }, t + TR);
-    reveal(tl, veil, { mode: 'portal', duration: TR }, t + TR);
+    reveal(tl, veil, { mode: 'iris', duration: TR }, t + TR);
     const a = t + TR, d = s.length - TR;
     tl.to(rig.rotation, { y: 0.5, duration: d, ...io }, a)
       .to(pose, { open: 1, spin: 1.8, duration: d, ...io }, a)
       .to(camRig.position, { z: 5.4, duration: d, ...io }, a);
   },
 
-  // 3 — dive into the lens, flash, and the featured project is inside it.
-  featured(tl, t, s) {
+  // 3 — dive into the lens, flash: about me, beside the lens with its blades half open.
+  about(tl, t, s) {
     tl.to(camRig.position, { x: S(2.05, 0.2), y: S(-0.05, 1), z: 1.4, duration: TR, ease: 'power3.in' }, t);
     cover(tl, veil, { mode: 'flash', color: '#f3e6c8', duration: TR }, t);
-    world(tl, WORLDS.field, t + TR, 0.3);
+    world(tl, WORLDS.field, t + TR, 0.18);
     snap(tl, camRig.position, { x: 0, y: 0, z: 6.8 }, t + TR);
-    snap(tl, rig.position, { x: S(1.85, 0), y: S(0, 1.05) }, t + TR);
+    // phones: the about copy fills the screen, so the lens steps out (it grows
+    // back in as the next chapter's transformation begins)
+    snap(tl, rig.position, { x: S(1.85, 0), y: S(0, 0.55) }, t + TR);
     snap(tl, rig.rotation, { x: 0, y: 0, z: 0 }, t + TR);
-    snap(tl, rig.scale, { x: S(0.98, 0.64), y: S(0.98, 0.64), z: S(0.98, 0.64) }, t + TR);
-    snap(tl, pose, { open: 1, panel: 1, zoom: 1.25, glass: 0 }, t + TR); // no front element: look straight in
+    snap(tl, rig.scale, { x: S(0.98, 0.001), y: S(0.98, 0.001), z: S(0.98, 0.001) }, t + TR);
+    snap(tl, pose, { open: 0.55, glass: 0 }, t + TR); // no front glass: look into the blades
     snap(tl, dust.material, { opacity: 0.35 }, t + TR);
     reveal(tl, veil, { mode: 'flash', duration: TR }, t + TR);
     const a = t + TR, d = s.length - TR;
     tl.to(camRig.position, { z: 5.7, duration: d, ...io }, a)
-      .to(pose, { zoom: 0.85, spin: 3.2, duration: d, ...io }, a)
+      .to(pose, { open: 0.8, spin: 3.2, duration: d, ...io }, a)
       .to(rig.rotation, { x: 0.08, y: -0.2, duration: d, ...io }, a);
   },
 
-  // 4 — liquid night; the lens shrinks into the hub of a turning reel of work.
+  // 4 — no veil: the lens transforms into a film reel. Phase A: the camera
+  //     stays close and the lens turns three-quarters so the telescoping and
+  //     the blades read big. Phase B: pull back and up to reveal the reel and
+  //     the work cards; the world blends into night throughout.
   work(tl, t, s) {
-    cover(tl, veil, { mode: 'liquid', color: WORLDS.night.bg, duration: TR }, t);
-    world(tl, WORLDS.night, t + TR, 0.1);
-    snap(tl, camRig.position, { x: 0, y: S(1.5, 2.2), z: S(9.6, 12.5) }, t + TR);
-    snap(tl, camRig.rotation, { x: S(-0.15, -0.14) }, t + TR);
-    snap(tl, rig.position, { x: S(2.1, 0), y: S(0.1, 2.55) }, t + TR); // phones: reel above the list
-    snap(tl, rig.rotation, { x: 0.35, y: 0, z: 0 }, t + TR);
-    snap(tl, rig.scale, { x: S(0.6, 0.5), y: S(0.6, 0.5), z: S(0.6, 0.5) }, t + TR);
-    snap(tl, pose, { panel: 0, open: 0.55, reel: 1, turn: 0, glass: 1 }, t + TR);
-    snap(tl, dust.material, { opacity: 0.5 }, t + TR);
-    reveal(tl, veil, { mode: 'liquid', duration: TR }, t + TR);
-    const a = t + TR + 0.2, d = s.length - TR - 0.55;
+    const m = MORPH, a1 = t + m * 0.55, b = m * 0.6;
+    tl.to(pose, { open: 1, duration: 0.15, ease: 'power2.in' }, t)
+      .to(pose, { glass: 1, duration: 0 }, t + 0.2)
+      .to(pose, { morph: 1, duration: m - 0.1, ease: 'power1.inOut' }, t + 0.1);
+    world(tl, WORLDS.night, t, 0.1, m);
+    // phase A — close, three-quarter view
+    tl.to(rig.rotation, { x: 0.18, y: -0.55, z: 0, duration: m * 0.55, ...io }, t)
+      .to(rig.scale, { x: S(0.82, 0.36), y: S(0.82, 0.36), z: S(0.82, 0.36), duration: m * 0.55, ...io }, t)
+      .to(rig.position, { x: S(1.4, 0), y: S(0, 0.55), duration: m * 0.55, ...io }, t);
+    // phase B — pull back to the work shot
+    tl.to(camRig.position, { x: 0, y: S(1.5, 2.2), z: S(9.6, 12.5), duration: b, ...io }, a1)
+      .to(camRig.rotation, { x: S(-0.15, -0.14), duration: b, ...io }, a1)
+      .to(rig.position, { x: S(2.1, 0), y: S(0.1, 2.55), duration: b, ...io }, a1) // phones: reel above the list
+      .to(rig.rotation, { x: 0.35, y: 0, z: 0, duration: b, ...io }, a1)
+      .to(rig.scale, { x: S(0.55, 0.46), y: S(0.55, 0.46), z: S(0.55, 0.46), duration: b, ...io }, a1)
+      .to(dust.material, { opacity: 0.5, duration: m }, t)
+      .to(pose, { reel: 1, duration: 0.25 }, a1 + b - 0.1);
+    const a = a1 + b + 0.2, d = t + s.length - 0.35 - a;
     tl.to(pose, { turn: projects.length - 1, spin: 5, duration: d, ease: 'power1.inOut' }, a)
       .to(camRig.position, { z: S(8.8, 11.8), duration: d, ...io }, a);
   },
 
-  // 5 — back to paper; the iris closes slowly. Calm, centred.
+  // 5 — the same transformation backwards, big and centred on paper; then the
+  //     lens settles above the headline and the iris closes.
   contact(tl, t, s) {
-    cover(tl, veil, { mode: 'portal', color: WORLDS.paper.bg, duration: TR }, t);
-    world(tl, WORLDS.paper, t + TR, 0.05);
-    snap(tl, camRig.position, { x: 0, y: 0, z: 6.2 }, t + TR);
-    snap(tl, camRig.rotation, { x: 0 }, t + TR);
-    snap(tl, rig.position, { x: 0, y: S(1.0, 1.1) }, t + TR);
-    snap(tl, rig.rotation, { x: 0.12, y: -0.45, z: 0 }, t + TR);
-    snap(tl, rig.scale, { x: S(0.58, 0.45), y: S(0.58, 0.45), z: S(0.58, 0.45) }, t + TR);
-    snap(tl, pose, { reel: 0, open: 0.9 }, t + TR);
-    snap(tl, dust.material, { opacity: 0 }, t + TR);
-    reveal(tl, veil, { mode: 'portal', duration: TR }, t + TR);
-    const a = t + TR, d = s.length - TR;
+    const m = MORPH, a1 = t + m * 0.8, b = 0.5;
+    tl.to(pose, { reel: 0, duration: 0.2 }, t)
+      .to(pose, { morph: 0, duration: m - 0.1, ease: 'power1.inOut' }, t + 0.1);
+    world(tl, WORLDS.paper, t, 0.05, m);
+    // phase A — to the centre, close, three-quarter view
+    tl.to(camRig.position, { x: 0, y: 0, z: 6.2, duration: m * 0.5, ...io }, t)
+      .to(camRig.rotation, { x: 0, duration: m * 0.5, ...io }, t)
+      .to(rig.position, { x: 0, y: S(0.15, 0.55), duration: m * 0.5, ...io }, t)
+      .to(rig.rotation, { x: 0.18, y: -0.5, z: 0, duration: m * 0.5, ...io }, t)
+      .to(rig.scale, { x: S(0.72, 0.36), y: S(0.72, 0.36), z: S(0.72, 0.36), duration: m * 0.5, ...io }, t)
+      .to(dust.material, { opacity: 0, duration: m }, t);
+    // phase B — settle above the headline
+    tl.to(rig.position, { x: 0, y: S(1.1, 0.98), duration: b, ...io }, a1)
+      .to(rig.rotation, { x: 0.12, y: -0.45, duration: b, ...io }, a1)
+      .to(rig.scale, { x: S(0.44, 0.3), y: S(0.44, 0.3), z: S(0.44, 0.3), duration: b, ...io }, a1);
+    const a = a1 + b, d = t + s.length - a;
     tl.to(pose, { open: 0.1, spin: 6, duration: d, ...io }, a)
       .to(rig.rotation, { y: 0.3, duration: d, ...io }, a)
       .to(camRig.position, { z: 5.6, duration: d, ...io }, a);
@@ -333,18 +331,21 @@ const BUILD = {
 
 // ------------------------------------------------------------------ copy
 const WORDS = '.w > span';
-const EXTRAS = '.eyebrow,.lede,.tags,.links,.credit,.scroll-cue,.hint,.work-list li';
+const EXTRAS = '.eyebrow,.lede,.tags,.links,.credit,.scroll-cue,.hint,.work-list li,.about-list li,.about-stats';
 function copyIn(tl, id, at) {
   const el = document.querySelector(`.copy[data-scene="${id}"]`);
-  tl.to(el, { autoAlpha: 1, duration: 0 }, at)
-    .fromTo(el.querySelectorAll(WORDS), { yPercent: 110 }, { yPercent: 0, stagger: 0.03, duration: 0.35, ease: 'power3.out', immediateRender: false }, at)
-    .fromTo(el.querySelectorAll(EXTRAS), { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, stagger: 0.025, duration: 0.3, ease: 'power2.out', immediateRender: false }, at + 0.08);
+  const words = el.querySelectorAll(WORDS), extras = el.querySelectorAll(EXTRAS);
+  tl.to(el, { autoAlpha: 1, duration: 0 }, at);
+  // not every chapter has split words or extras (the work list has neither)
+  if (words.length) tl.fromTo(words, { yPercent: 110 }, { yPercent: 0, stagger: 0.03, duration: 0.35, ease: 'power3.out', immediateRender: false }, at);
+  if (extras.length) tl.fromTo(extras, { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, stagger: 0.025, duration: 0.3, ease: 'power2.out', immediateRender: false }, at + 0.08);
 }
 function copyOut(tl, id, at) {
   const el = document.querySelector(`.copy[data-scene="${id}"]`);
-  tl.to(el.querySelectorAll(WORDS), { yPercent: -110, stagger: 0.012, duration: 0.22, ease: 'power2.in' }, at)
-    .to(el.querySelectorAll(EXTRAS), { autoAlpha: 0, duration: 0.15 }, at)
-    .to(el, { autoAlpha: 0, duration: 0 }, at + 0.26);
+  const words = el.querySelectorAll(WORDS), extras = el.querySelectorAll(EXTRAS);
+  if (words.length) tl.to(words, { yPercent: -110, stagger: 0.012, duration: 0.22, ease: 'power2.in' }, at);
+  if (extras.length) tl.to(extras, { autoAlpha: 0, duration: 0.15 }, at);
+  tl.to(el, { autoAlpha: 0, duration: 0 }, at + 0.26);
 }
 
 let starts = [];
@@ -358,8 +359,8 @@ function buildStory() {
   SCENES.forEach((s, i) => {
     starts.push(t);
     BUILD[s.id](tl, t, s);
-    if (i) copyIn(tl, s.id, t + TR * 2 + 0.05);
-    if (i < SCENES.length - 1) copyOut(tl, s.id, t + s.length - 0.3);
+    if (i) copyIn(tl, s.id, t + s.clear + 0.05);
+    if (i < SCENES.length - 1) copyOut(tl, s.id, t + s.length - (s.out ?? 0.3));
     t += s.length;
   });
   tl.to({}, { duration: 0.001 }, total);
@@ -369,11 +370,20 @@ function buildStory() {
   const label = document.querySelector('[data-hud-label]');
   const tc = document.querySelector('[data-hud-tc]');
   let current = -1;
+  // The scroll sets a target; the playhead follows with a speed limit that is
+  // much lower inside transitions, so a fast flick can't skip one.
+  const playhead = createPlayhead(tl, {
+    zones: SCENES.slice(1).map((sc, k) => [starts[k + 1] - (sc.lead ?? 0.05), starts[k + 1] + sc.zone + 0.05]),
+    reduced: reducedMotion,
+  });
   ScrollTrigger.create({
     trigger: '#story', start: 'top top', end: 'bottom bottom',
-    scrub: reducedMotion ? true : 1, animation: tl,
-    onUpdate(self) { scrollVelocity = self.getVelocity(); },
+    onUpdate(self) {
+      scrollVelocity = self.getVelocity();
+      playhead.seek(self.progress * total);
+    },
   });
+  gsap.ticker.add((time, dt) => playhead.update(Math.min(dt, 100) / 1000));
   tl.eventCallback('onUpdate', () => {
     {
       const p = tl.progress();
@@ -392,15 +402,16 @@ function buildStory() {
 
   // HUD / nav jumps: land in the calm middle of a chapter
   const go = (i) => {
-    const time = i ? starts[i] + TR * 2 + 0.55 : 0;
+    const time = i ? starts[i] + SCENES[i].clear + 0.55 : 0;
     const y = (document.documentElement.scrollHeight - innerHeight) * (time / total);
+    playhead.rush(Math.max(2, Math.abs(time - playhead.time) / 2)); // deliberate jumps may pass faster
     if (window.lenis) window.lenis.scrollTo(y, { duration: 1.6 }); else scrollTo(0, y);
   };
   document.querySelectorAll('[data-go]').forEach((a) => a.addEventListener('click', (e) => {
     e.preventDefault();
     go(Number(a.dataset.go));
   }));
-  window.portfolio = { go, total: () => total, starts: () => starts };
+  window.portfolio = { go, total: () => total, starts: () => starts, playhead };
 }
 
 function introCopy() {
@@ -425,22 +436,32 @@ function frame() {
   timer.update();
   if (document.hidden) return;
   const time = timer.getElapsed();
-  const hero = rig.children.find((c) => c !== panel);
+  const hero = rig.children[0];
   if (hero && !reducedMotion) {
     hero.position.y = Math.sin(time * 0.7) * 0.04;
     hero.rotation.x += (pointer.y * 0.18 - hero.rotation.x) * 0.05;
     hero.rotation.y += (pointer.x * 0.24 - hero.rotation.y) * 0.05;
   }
   if (parts) {
-    // blades swing around their pivots; the whole iris slowly turns
-    parts.blades.forEach((b) => { b.rotation.z = pose.open * OPEN_ANGLE; });
+    // blades swing around their pivots; the whole iris slowly turns. The
+    // morph clip is authored with the iris fully open, so hold it open then.
+    const open = pose.morph > 0.001 ? 1 : pose.open;
+    parts.blades.forEach((b) => { b.rotation.z = open * OPEN_ANGLE; });
     if (parts.iris) parts.iris.rotation.z = pose.spin * 0.25;
-    if (parts.glass) parts.glass.visible = pose.glass > 0.5;
+    // both elements: hiding only the front one reveals the bright rear element deep inside
+    parts.glass.forEach((g) => { g.visible = pose.glass > 0.5; });
+    if (parts.morph && pose.morph !== parts.morph.last) {
+      const { action, duration } = parts.morph;
+      parts.morph.last = pose.morph;
+      action.time = pose.morph * duration;
+      parts.morph.mixer.update(0);
+      // the focus grip's rubber turns into glossy film stock as it becomes the roll
+      const f = THREE.MathUtils.smoothstep(pose.morph, 0.3, 0.65);
+      parts.film.color.lerpColors(parts.rubber, FILM, f);
+      parts.film.roughness = THREE.MathUtils.lerp(0.78, 0.26, f);
+      parts.film.metalness = THREE.MathUtils.lerp(0, 0.35, f);
+    }
   }
-  const u = panel.material.uniforms;
-  panel.visible = pose.panel > 0.001;
-  u.uOpacity.value = pose.panel;
-  u.uZoom.value = pose.zoom;
 
   bend += (THREE.MathUtils.clamp(scrollVelocity / 2500, -1, 1) - bend) * 0.08;
   scrollVelocity *= 0.9;
@@ -462,7 +483,8 @@ function frame() {
   );
 
   renderer.clear();
-  if (composer) composer.render(); else renderer.render(scene, camera);
+  // bloom only where it shows: the light worlds run it at ~0.05, i.e. invisible
+  if (composer && bloom.strength > 0.1) composer.render(); else renderer.render(scene, camera);
   preview.render(renderer);
   veil.render(renderer, time);
 }
@@ -487,20 +509,41 @@ const progress = {
 
 // ------------------------------------------------------------------ boot
 async function boot() {
-  const [hero] = await Promise.all([loadHero(), loadProjects()]);
+  const [{ scene: hero, clip }] = await Promise.all([loadHero(), loadProjects()]);
   rig.add(hero);
-  // Group the blades under one pivot so the whole iris can rotate as a ring.
+  // Blade hierarchy: Hero_BladePivot_NN (moved by the morph clip) → Hero_Blade_NN
+  // (rotated here to open the iris). The pivots go under one group so the
+  // whole iris can turn as a ring; the clip still finds them by name.
   const iris = new THREE.Group();
   hero.add(iris);
-  const blades = [];
-  hero.traverse((o) => { if (o.name.startsWith('Hero_Blade_')) blades.push(o); });
-  blades.forEach((b) => iris.attach(b));
+  const blades = [], pivots = [];
+  hero.traverse((o) => {
+    if (o.name.startsWith('Hero_BladePivot_')) pivots.push(o);
+    else if (o.name.startsWith('Hero_Blade_')) blades.push(o);
+  });
+  (pivots.length ? pivots : blades).forEach((o) => iris.attach(o));
   parts = { blades, iris };
+  if (clip) {
+    const mixer = new THREE.AnimationMixer(hero);
+    const action = mixer.clipAction(clip);
+    action.setLoop(THREE.LoopOnce, 1);
+    action.clampWhenFinished = true;
+    action.play();
+    parts.morph = { mixer, action, duration: clip.duration };
+    const grip = hero.getObjectByName('Hero_Grip');
+    grip.material = grip.material.clone();
+    parts.film = grip.material;
+    parts.rubber = grip.material.color.clone();
+  }
   const glass = hero.getObjectByName('Hero_Glass');
-  if (glass?.material) Object.assign(glass.material, { envMapIntensity: 0.18, roughness: 0, thickness: 0.25 });
-  parts.glass = glass;
+  const materialsOf = (node) => { const m = []; node?.traverse((o) => { if (o.isMesh) m.push(o.material); }); return m; };
+  // coated optics: a faint thin-film rainbow on both glass elements
+  const coating = { iridescence: 0.7, iridescenceIOR: 1.3, iridescenceThicknessRange: [180, 420] };
+  materialsOf(glass).forEach((m) => Object.assign(m, { envMapIntensity: 0.08, roughness: 0.02, thickness: 0.25, ...coating }));
+  const rear = hero.getObjectByName('Hero_Glass_Rear');
+  materialsOf(rear).forEach((m) => Object.assign(m, { envMapIntensity: 0.3, thickness: 0.15, ...coating }));
+  parts.glass = [glass, rear].filter(Boolean);
 
-  fillFeatured();
   fillWork();
   rows = [...document.querySelectorAll('.work-row')];
   splitWords();
@@ -508,10 +551,18 @@ async function boot() {
   reel = createReel(projects, textures, { radius: S(3.3, 2.6), width: S(2.1, 1.7) });
   scene.add(reel.group);
 
-  // compile everything once so no shader builds mid-scroll
-  panel.visible = true; reel.group.visible = true;
+  // Warm everything up while the loader still covers the page, so nothing is
+  // compiled or uploaded mid-scroll (those were the long freezes): scene
+  // shaders, the project textures, the transition veil and the hover preview.
+  reel.group.visible = true;
   renderer.compile(scene, camera);
-  panel.visible = false; reel.group.visible = false;
+  reel.group.visible = false;
+  textures.forEach((tex) => renderer.initTexture(tex));
+  veil.uniforms.uProgress.value = 0.5;
+  veil.render(renderer, 0);
+  veil.uniforms.uProgress.value = 0;
+  preview.warm(renderer, textures[0]);
+  renderer.clear();
 
   if (!reducedMotion) {
     const lenis = new Lenis({ lerp: 0.08 });

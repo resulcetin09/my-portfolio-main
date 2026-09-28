@@ -7,7 +7,7 @@
   <meta name="description" content="Portfolio of Resul Çetin: cinematic, scroll-driven web experiences and privacy-first dApps on Stellar and Midnight." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700&family=Manrope:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./style.css" />
   <link rel="preload" href="./models/hero.glb" as="fetch" crossorigin />
   <link rel="preload" href="./data/projects.json" as="fetch" crossorigin />
@@ -38,6 +38,7 @@
       <span>Resul Çetin</span>
     </a>
     <nav class="hud__nav" aria-label="Main">
+      <a href="#about" data-go="2" data-i18n="navAbout">About</a>
       <a href="#work" data-go="3" data-i18n="navWork">Work</a>
       <a href="#contact" data-go="4" data-i18n="navContact">Contact</a>
       <a href="https://github.com/resulcetin09" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
@@ -67,14 +68,25 @@
       <p class="lede" data-i18n="body1">One continuous 3D shot. The camera moves, the world changes, and the story unfolds as you scroll. Nothing just comes next.</p>
     </section>
 
-    <section class="copy" data-scene="featured">
-      <p class="eyebrow" data-i18n="eye2">Featured · Shot on Scroll Cinema</p>
-      <h2 class="display" data-split data-f="title">Harvest</h2>
-      <p class="lede" data-f="tagline"></p>
-      <ul class="tags" data-f="tags"></ul>
+    <section class="copy copy--about" data-scene="about" id="about">
+      <p class="eyebrow" data-i18n="eye2">About</p>
+      <h2 class="display" data-split data-i18n="title2">Design, code, proof.</h2>
+      <p class="lede" data-i18n="body2">I study mechanical engineering at Zonguldak Bülent Ecevit University and build where design, software and security meet. I lead product design for the Joins app at Blue Network and ship zero-knowledge apps on Stellar and Midnight.</p>
+      <ul class="about-list">
+        <li><span class="about-list__n">01</span><span class="about-list__k" data-i18n="f1k">Product design</span><span class="about-list__v" data-i18n="f1v">Senior Product Designer at Blue Network — Joins, live on the App Store</span></li>
+        <li><span class="about-list__n">02</span><span class="about-list__k" data-i18n="f2k">Blockchain &amp; ZK</span><span class="about-list__v" data-i18n="f2v">Stellar / Soroban and Midnight · Rise In blockchain graduate</span></li>
+        <li><span class="about-list__n">03</span><span class="about-list__k" data-i18n="f3k">Cyber security</span><span class="about-list__v" data-i18n="f3v">CAPT certified (Hackviser) · Türkiye Siber Vatan Programme</span></li>
+      </ul>
+      <div class="about-foot">
+      <dl class="about-stats">
+        <div><dt>15+</dt><dd data-i18n="s1">projects on GitHub</dd></div>
+        <div><dt>4</dt><dd data-i18n="s2">Rise In hackathon &amp; programme projects</dd></div>
+        <div><dt>2</dt><dd data-i18n="s3">networks: Stellar &amp; Midnight</dd></div>
+      </dl>
       <div class="links">
-        <a class="cta" data-f="url" href="#" target="_blank" rel="noopener noreferrer"><span data-i18n="live">Visit live site</span> ↗</a>
-        <a class="text-link" data-f="github" href="#" target="_blank" rel="noopener noreferrer"><span data-i18n="code">Source code</span> ↗</a>
+        <a class="cta" href="https://www.linkedin.com/in/resulcetin" target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>
+        <a class="text-link" href="https://github.com/resulcetin09" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+      </div>
       </div>
     </section>
 
